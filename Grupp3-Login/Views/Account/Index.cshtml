@@ -43,7 +43,7 @@
                             <tr>
                                 <td>@account.id</td>
                                 <td>@account.userName</td>
-                                <td>@account.Role.roleName</td>
+                                <td>@account.Role?.roleName ?? "Ingen roll"</td>
                                 <td>
                                     <a class="btn btn-warning btn-sm" asp-action="Edit" asp-route-id="@account.id">
                                         <i class="bi bi-pencil-square"></i> Redigera

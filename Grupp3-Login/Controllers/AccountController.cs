@@ -1,133 +1,152 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Grupp3_Login.Models;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
+using Grupp3_Login.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
 
-[Authorize(Policy = "requireAdmin")] // 🔐 Endast Admin kan komma åt denna controller
-public class AccountController : Controller
+namespace Grupp3_MVC.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public AccountController(AppDbContext context)
+    [Authorize] // Kräver att användaren är inloggad
+    public class AccountController : Controller
     {
-        _context = context;
-    }
+        private readonly HttpClient _httpClient;
+        private readonly string _apiUrl = "https://localhost:7200/api/Account";  // URL för ditt API
 
-    // 🔹 Visa lista över alla konton (Hantera konton-sidan)
-    public async Task<IActionResult> Index()
-    {
-        var accounts = await _context.Accounts
-            .Include(a => a.Role) // Hämtar även roll-information
-            .ToListAsync();
-
-        return View(accounts); // Länkar till rätt vy
-    }
-
-    // 🔹 Skapa nytt konto (GET)
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // 🔹 Skapa nytt konto (POST)
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Account account)
-    {
-        if (ModelState.IsValid)
+        public AccountController(HttpClient httpClient)
         {
-            _context.Add(account);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-        return View(account);
-    }
-
-    // 🔹 Redigera konto (GET)
-    public async Task<IActionResult> Edit(int id)
-    {
-        var account = await _context.Accounts.FindAsync(id);
-        if (account == null)
-        {
-            return NotFound();
-        }
-        return View(account);
-    }
-
-    // 🔹 Redigera konto (POST)
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Account account)
-    {
-        if (id != account.id)
-        {
-            return BadRequest();
+            _httpClient = httpClient;
         }
 
-        if (ModelState.IsValid)
+        // Hjälpmetod för att lägga till JWT-token i headers
+        private void AddAuthorizationHeader()
         {
-            _context.Update(account);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            var token = HttpContext.Session.GetString("JWTToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
         }
-        return View(account);
-    }
 
-    // 🔹 Radera konto (GET: Bekräftelsesida)
-    public async Task<IActionResult> Delete(int id)
-    {
-        var account = await _context.Accounts.FindAsync(id);
-        if (account == null)
+        // ✅ Visa alla konton i Index
+        [HttpGet]
+        public async Task<IActionResult> Index()
         {
-            return NotFound();
-        }
-        return View(account);
-    }
+            AddAuthorizationHeader();
 
-    // 🔹 Radera konto (POST)
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
-    {
-        var account = await _context.Accounts.FindAsync(id);
-        if (account != null)
+            var response = await _httpClient.GetAsync(_apiUrl);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return RedirectToAction("Login", "Home"); // Om token är ogiltig, skicka användaren till login
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError("", "Kunde inte hämta konton.");
+                return View(new List<Account>());
+            }
+
+            try
+            {
+                var accounts = await response.Content.ReadFromJsonAsync<List<Account>>();
+                return View(accounts);
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Fel vid deserialisering: {ex.Message}");
+                return View(new List<Account>());
+            }
+        }
+
+        // ✅ Registrera kund
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> Register(Account model)
         {
-            _context.Accounts.Remove(account);
-            await _context.SaveChangesAsync();
+            var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/register", model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction("Index");
+            }
+
+            ModelState.AddModelError("", "Kunde inte skapa konto.");
+            return View(model);
         }
-        return RedirectToAction(nameof(Index));
+
+        // ✅ Skapa Employee (Admin)
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> CreateEmployee(Account model)
+        {
+            AddAuthorizationHeader();
+            var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/create-employee", model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction("Index");
+            }
+
+            ModelState.AddModelError("", "Kunde inte skapa employee-konto.");
+            return View(model);
+        }
+
+        // ✅ Uppdatera konto (Admin)
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            AddAuthorizationHeader();
+            var response = await _httpClient.GetAsync($"{_apiUrl}/{id}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return RedirectToAction("Login", "Home");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return NotFound();
+            }
+
+            var account = await response.Content.ReadFromJsonAsync<Account>();
+            return View(account);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> Edit(int id, Account model)
+        {
+            AddAuthorizationHeader();
+            var response = await _httpClient.PutAsJsonAsync($"{_apiUrl}/{id}", model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction("Index");
+            }
+
+            ModelState.AddModelError("", "Kunde inte uppdatera konto.");
+            return View(model);
+        }
+
+        // ✅ Ta bort konto (Admin)
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
+        {
+            AddAuthorizationHeader();
+            var response = await _httpClient.DeleteAsync($"{_apiUrl}/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction("Index");
+            }
+
+            ModelState.AddModelError("", "Kunde inte ta bort konto.");
+            return RedirectToAction("Index");
+        }
     }
-public IActionResult RegisterCustomer()
-{
-    return View();
-}
-
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> RegisterCustomer(Account account)
-{
-    if (ModelState.IsValid)
-    {
-        // Assigna automatiskt role id 3.
-        account.roleId = 3;
-
-        _context.Accounts.Add(account);
-        await _context.SaveChangesAsync();
-
-        // Omdirigera till home
-        return RedirectToAction("Index", "Home");
-    }
-
-    return View(account);
-}
-
-    public IActionResult CreateAccount() {
-        return View();
-    }
-
 }

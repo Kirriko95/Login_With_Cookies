@@ -1,63 +1,44 @@
-﻿using Grupp3_Login.Models;
-using Grupp3_Login.Services;
+﻿using Grupp3_Login.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
 
-namespace Grupp3_Login
+var builder = WebApplication.CreateBuilder(args);
+
+// Lägg till session och cookie-baserad autentisering
+builder.Services.AddDistributedMemoryCache(); // Cache för session
+builder.Services.AddSession(options =>
 {
-    public class Program
+    options.Cookie.Name = ".Grupp3_Login.Session";
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Timeout för sessionen
+    options.Cookie.IsEssential = true; // Gör sessionen nödvändig
+});
+
+// Lägg till HttpClient via IHttpClientFactory
+builder.Services.AddHttpClient();
+
+// Lägg till ApiService för DI
+builder.Services.AddScoped<ApiService>();
+
+// Lägg till autentisering med cookies
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
     {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+        options.LoginPath = "/Home/Login";
+        options.LogoutPath = "/Home/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30); // Timeout för cookies
+    });
 
-            builder.Services.AddHttpClient<AccountService>();
+// Lägg till MVC
+builder.Services.AddControllersWithViews();
 
-            // 🔹 Lägg till autentisering och auktorisering
-            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options => options.LoginPath = "/Home/Login");
+var app = builder.Build();
 
-            builder.Services.AddAuthorization(options =>
-            {
-                options.AddPolicy("requireAdmin", policy =>
-                    policy.RequireClaim("RoleId", "1"));
-            });
+// Använd autentisering och session
+app.UseAuthentication();
+app.UseSession();
+app.UseAuthorization();
 
-            // 🔹 Lägg till sessionshantering
-            builder.Services.AddSession();
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            // 🔹 Lägg till controllers & views
-            builder.Services.AddControllersWithViews();
-
-            // 🔹 Lägg till SQLite-databasen
-            builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            var app = builder.Build();
-
-            // 🔹 Konfigurera pipeline
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseExceptionHandler("/Home/Error");
-                app.UseHsts();
-            }
-
-            app.UseHttpsRedirection();
-            app.UseStaticFiles();
-
-            app.UseRouting();
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            // 🔹 Lägg till sessionshantering i pipelinen
-            app.UseSession();
-
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
-
-            app.Run();
-        }
-    }
-}
+app.Run();

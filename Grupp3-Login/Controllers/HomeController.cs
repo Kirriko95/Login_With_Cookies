@@ -1,18 +1,23 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Grupp3_Login.Models; // Se till att `LoginRequest`-modellen finns här
+using Grupp3_Login.Models;
+using Grupp3_Login.Services;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 public class HomeController : Controller
 {
-    private readonly HttpClient _httpClient;
+    private readonly ApiService _apiService;
+    private readonly ILogger<HomeController> _logger;
 
-    public HomeController(HttpClient httpClient)
+    public HomeController(ApiService apiService, ILogger<HomeController> logger)
     {
-        _httpClient = httpClient;
+        _apiService = apiService;
+        _logger = logger;
     }
 
     // 🏠 Visa loginformuläret
@@ -25,18 +30,19 @@ public class HomeController : Controller
     {
         return View();
     }
+
     public IActionResult Admin()
     {
-        var token = HttpContext.Session.GetString("JWTToken");
-        if (string.IsNullOrEmpty(token))
+        // Kontrollera om användaren är inloggad via cookies
+        if (!User.Identity.IsAuthenticated)
         {
-            return RedirectToAction("Index");
+            return RedirectToAction("Login"); // Om ej inloggad, omdirigera till login
         }
 
         return View();
     }
 
-    // ✅ Hantera inloggning via API:et
+    // ✅ Hantera inloggning via API:et och skapa cookie
     [HttpPost]
     public async Task<IActionResult> Login(LoginRequest model)
     {
@@ -46,7 +52,7 @@ public class HomeController : Controller
         }
 
         // 🔹 Skicka loginförfrågan till API:et
-        var response = await _httpClient.PostAsJsonAsync("https://localhost:7200/api/Authentication/login", model);
+        var response = await _apiService.LoginAsync(model);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -54,37 +60,54 @@ public class HomeController : Controller
             return View("Index");
         }
 
-        // 🔹 Läs svaret och spara JWT-token & roll i sessionen
+        // 🔹 Läs API-svaret som en `LoginResponse`
         var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 
-        HttpContext.Session.SetString("JWTToken", result.Token);
-        HttpContext.Session.SetString("UserRole", result.Role);
-
-        if (result.Role == "Admin")
+        if (result == null || string.IsNullOrEmpty(result.Role))
         {
-            return RedirectToAction("Admin");
+            _logger.LogError("API-svaret kunde inte deserialiseras korrekt!");
+            ViewBag.Error = "Något gick fel. Försök igen";
+            return View("Index"); // Visa login igen om något gick fel
         }
 
-        return RedirectToAction("Dashboard"); // Skicka användaren till en skyddad sida
+        // Skapa cookie med användartoken
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, model.UserName),
+            new Claim(ClaimTypes.Role, result.Role)
+        };
+
+        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+
+        // Logga in användaren med cookie
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal);
+
+        _logger.LogInformation($"Användaren {model.UserName} loggade in.");
+
+        // Omdirigera beroende på roll
+        return result.Role == "Admin" ? RedirectToAction("Admin") : RedirectToAction("Dashboard");
     }
 
     // 🔒 Skyddad vy (Dashboard)
     [Authorize] // Kräver autentisering
     public IActionResult Dashboard()
     {
-        var token = HttpContext.Session.GetString("JWTToken");
-        if (string.IsNullOrEmpty(token))
+        // Kontrollera om användaren är inloggad via cookies
+        if (!User.Identity.IsAuthenticated)
         {
-            return RedirectToAction("Index"); // Skicka tillbaka till login om ej inloggad
+            return RedirectToAction("Login"); // Skicka tillbaka till login om ej inloggad
         }
 
         return View();
     }
 
     // 🚪 Logga ut
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
-        HttpContext.Session.Clear(); // Rensa sessionen
-        return RedirectToAction("Index");
+        // Logga ut användaren och rensa cookies
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        return RedirectToAction("Login"); // Omdirigera till login
     }
 }
