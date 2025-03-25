@@ -57,7 +57,7 @@ public class HomeController : Controller
         if (!response.IsSuccessStatusCode)
         {
             ViewBag.Error = "Felaktigt användarnamn eller lösenord.";
-            return View("Index");
+            return View("Login");
         }
 
         // 🔹 Läs API-svaret som en `LoginResponse`
