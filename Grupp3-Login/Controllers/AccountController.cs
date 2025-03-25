@@ -6,9 +6,11 @@ using Grupp3_Login.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
+using System.Net.Http;
 
 namespace Grupp3_MVC.Controllers
 {
+  
     [Authorize] // Kräver att användaren är inloggad
     public class AccountController : Controller
     {
@@ -61,21 +63,7 @@ namespace Grupp3_MVC.Controllers
             }
         }
 
-        // ✅ Registrera kund
-        [AllowAnonymous]
-        [HttpPost]
-        public async Task<IActionResult> Register(Account model)
-        {
-            var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/register", model);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return RedirectToAction("Index");
-            }
-
-            ModelState.AddModelError("", "Kunde inte skapa konto.");
-            return View(model);
-        }
+        
 
         // ✅ Skapa Employee (Admin)
         [Authorize(Roles = "Admin")]
