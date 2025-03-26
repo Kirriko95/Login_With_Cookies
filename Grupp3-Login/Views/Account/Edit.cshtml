@@ -1,15 +1,15 @@
-﻿@model Grupp3_Login.Models.CreateAccountDto
+﻿@model Grupp3_Login.Models.UpdateAccountDto
 
 @{
-    ViewData["Title"] = "Skapa Nytt Konto";
+    ViewData["Title"] = "Uppdatera Konto";
 }
 
 <h1>@ViewData["Title"]</h1>
 
-<form asp-action="CreateAccount" method="post">
+<form asp-action="Edit" method="post">
     <div class="mb-3">
         <label for="UserName" class="form-label">Användarnamn</label>
-        <input type="text" class="form-control" id="UserName" name="UserName" required />
+        <input type="text" class="form-control" id="UserName" name="UserName" value="@Model.UserName" required />
     </div>
 
     <div class="mb-3">
@@ -18,7 +18,8 @@
     </div>
 
     <div class="mb-3">
-        <button type="submit" class="btn btn-primary">Skapa Konto</button>
+        <button type="submit" class="btn btn-primary">Uppdatera</button>
         <a href="@Url.Action("Index", "Account")" class="btn btn-secondary">Avbryt</a>
+        <button type="submit" formaction="@Url.Action("Delete", "Account", new { id = Model.Id })" class="btn btn-danger">Ta bort</button>
     </div>
 </form>
