@@ -4,22 +4,25 @@
     ViewData["Title"] = "Uppdatera Konto";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1 style="color:white;">@ViewData["Title"]</h1>
 
 <form asp-action="Edit" method="post">
-    <div class="mb-3">
+    <div class="mb-3" style="color:white;">
         <label for="UserName" class="form-label">Användarnamn</label>
         <input type="text" class="form-control" id="UserName" name="UserName" value="@Model.UserName" required />
     </div>
 
-    <div class="mb-3">
+    <div class="mb-3" style="color:white;">
         <label for="Password" class="form-label">Lösenord</label>
         <input type="password" class="form-control" id="Password" name="Password" required />
     </div>
 
     <div class="mb-3">
-        <button type="submit" class="btn btn-primary">Uppdatera</button>
-        <a href="@Url.Action("Index", "Account")" class="btn btn-secondary">Avbryt</a>
-        <button type="submit" formaction="@Url.Action("Delete", "Account", new { id = Model.Id })" class="btn btn-danger">Ta bort</button>
+        <button type="submit" class="btn btn-primary" style="background-color: #FF00FF; color: white; outline: 1px solid white;">Uppdatera</button>
+        <a href="@Url.Action("Index", "Account")" class="btn btn-secondary" style="background-color: #FF00FF; color: white; outline: 1px solid white;">Avbryt</a>
+        <button type="submit" formaction="@Url.Action("Delete", "Account", new { id = Model.Id })" class="btn btn-danger" style="background-color: #FF00FF; color: white; outline: 1px solid white;
+">
+            Ta bort
+        </button>
     </div>
 </form>
