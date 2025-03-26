@@ -4,21 +4,21 @@
     ViewData["Title"] = "Skapa Nytt Konto";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1 style="color:white">@ViewData["Title"]</h1>
 
 <form asp-action="CreateAccount" method="post">
-    <div class="mb-3">
+    <div class="mb-3" style="color:white;">
         <label for="UserName" class="form-label">Användarnamn</label>
         <input type="text" class="form-control" id="UserName" name="UserName" required />
     </div>
 
-    <div class="mb-3">
+    <div class="mb-3"style="color:white;">
         <label for="Password" class="form-label">Lösenord</label>
         <input type="password" class="form-control" id="Password" name="Password" required />
     </div>
 
-    <div class="mb-3">
-        <button type="submit" class="btn btn-primary">Skapa Konto</button>
-        <a href="@Url.Action("Index", "Account")" class="btn btn-secondary">Avbryt</a>
+    <div class="mb-3"style="color:white">
+        <button type="submit" class="btn btn-primary" style="background-color: #FF00FF; color: white; outline: 1px solid white;">Skapa Konto</button>
+        <a href="@Url.Action("Index", "Account")" class="btn btn-secondary" style="background-color: #FF00FF; color: white; outline: 1px solid white;">Avbryt</a>
     </div>
 </form>
