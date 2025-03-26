@@ -8,11 +8,11 @@ namespace Grupp3_Login.Controllers
 {
     public class RegisterCustomerController : Controller
     {
-        private readonly HttpClient _httpClient;
+        private readonly AccountService _accountService;
 
-        public RegisterCustomerController(IHttpClientFactory httpClientFactory)
+        public RegisterCustomerController(AccountService accountService)
         {
-            _httpClient = httpClientFactory.CreateClient("MyAPI");
+            _accountService = accountService;
         }
 
         // (Visar registreringsformuläret)
@@ -21,25 +21,23 @@ namespace Grupp3_Login.Controllers
         {
             return View();
         }
-
-        //(Hantera registrering)
         [HttpPost]
-        public async Task<IActionResult> RegisterCustomer(Account model)
+        public async Task<IActionResult> Register(CreateAccountDto model)
         {
             if (!ModelState.IsValid)
             {
-                return View("Register", model); // Om valideringen misslyckas, visa formuläret igen
+                return View(model);
             }
 
-            var response = await _httpClient.PostAsJsonAsync("Authentication/register", model);
+            var success = await _accountService.CreateCustomerAsync(model);
 
-            if (response.IsSuccessStatusCode)
+            if (!success)
             {
-                return RedirectToAction("Index", "Home"); // Gå tillbaka till startsidan
+                ModelState.AddModelError("", "Misslyckades att skapa kontot.");
+                return View(model);
             }
 
-            ModelState.AddModelError("", "Kunde inte skapa konto.");
-            return View("Register", model);
+            return RedirectToAction("Login", "Home");
         }
     }
 }
