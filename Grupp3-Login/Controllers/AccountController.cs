@@ -1,97 +1,30 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Grupp3_Login.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Grupp3_Login.Models;
+using Microsoft.EntityFrameworkCore.Storage.Json;
 
 namespace Grupp3_MVC.Controllers
 {
-    [Authorize] // Kräver att användaren är inloggad
+    [Authorize]
     public class AccountController : Controller
     {
-        private readonly HttpClient _httpClient;
-        private readonly string _apiUrl = "https://localhost:7200/api/Account";  // URL för ditt API
+        private readonly AccountService _accountService;
 
-        public AccountController(HttpClient httpClient)
+        public AccountController(AccountService accountService)
         {
-            _httpClient = httpClient;
+            _accountService = accountService;
         }
-
-        // Hjälpmetod för att lägga till JWT-token i headers
-        private void AddAuthorizationHeader()
-        {
-            var token = HttpContext.Session.GetString("JWTToken");
-            if (!string.IsNullOrEmpty(token))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-        }
-
         // ✅ Visa alla konton i Index
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            AddAuthorizationHeader();
+            var accounts = await _accountService.GetAccountsAsync();
 
-            var response = await _httpClient.GetAsync(_apiUrl);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                return RedirectToAction("Login", "Home"); // Om token är ogiltig, skicka användaren till login
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                ModelState.AddModelError("", "Kunde inte hämta konton.");
-                return View(new List<Account>());
-            }
-
-            try
-            {
-                var accounts = await response.Content.ReadFromJsonAsync<List<Account>>();
-                return View(accounts);
-            }
-            catch (Exception ex)
-            {
-                ModelState.AddModelError("", $"Fel vid deserialisering: {ex.Message}");
-                return View(new List<Account>());
-            }
-        }
-
-        // ✅ Registrera kund
-        [AllowAnonymous]
-        [HttpPost]
-        public async Task<IActionResult> Register(Account model)
-        {
-            var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/register", model);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return RedirectToAction("Index");
-            }
-
-            ModelState.AddModelError("", "Kunde inte skapa konto.");
-            return View(model);
-        }
-
-        // ✅ Skapa Employee (Admin)
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
-        public async Task<IActionResult> CreateEmployee(Account model)
-        {
-            AddAuthorizationHeader();
-            var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/create-employee", model);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return RedirectToAction("Index");
-            }
-
-            ModelState.AddModelError("", "Kunde inte skapa employee-konto.");
-            return View(model);
+            return View(accounts);
         }
 
         // ✅ Uppdatera konto (Admin)
@@ -99,53 +32,81 @@ namespace Grupp3_MVC.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            AddAuthorizationHeader();
-            var response = await _httpClient.GetAsync($"{_apiUrl}/{id}");
+            var account = await _accountService.GetAccountAsync(id);
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                return RedirectToAction("Login", "Home");
-            }
-
-            if (!response.IsSuccessStatusCode)
+            if (account == null)
             {
                 return NotFound();
             }
 
-            var account = await response.Content.ReadFromJsonAsync<Account>();
-            return View(account);
+            var model = new UpdateAccountDto
+            {
+                UserName = account.UserName,
+                Password = ""
+            };
+            return View(model);
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> Edit(int id, Account model)
+        public async Task<IActionResult> Edit(int id, UpdateAccountDto model)
         {
-            AddAuthorizationHeader();
-            var response = await _httpClient.PutAsJsonAsync($"{_apiUrl}/{id}", model);
-
-            if (response.IsSuccessStatusCode)
+            if (!ModelState.IsValid)
             {
-                return RedirectToAction("Index");
+                return View(model);
+
             }
 
-            ModelState.AddModelError("", "Kunde inte uppdatera konto.");
-            return View(model);
+            var success = await _accountService.UpdateAccountAsync(id, model);
+
+            if (!success)
+            {
+                ModelState.AddModelError("", "Misslyckades att uppdatera kontot.");
+                return View(model);
+            }
+
+            return RedirectToAction("Index");
         }
 
         // ✅ Ta bort konto (Admin)
         [Authorize(Roles = "Admin")]
-        [HttpPost]
-        public async Task<IActionResult> Delete(int id)
+        [HttpPost, ActionName("Delete")]
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            AddAuthorizationHeader();
-            var response = await _httpClient.DeleteAsync($"{_apiUrl}/{id}");
+            var success = await _accountService.DeleteAccountAsync(id);
 
-            if (response.IsSuccessStatusCode)
+            if (!success)
             {
+                TempData["Error"] = "Misslyckades att radera kontot.";
                 return RedirectToAction("Index");
             }
 
-            ModelState.AddModelError("", "Kunde inte ta bort konto.");
+            TempData["Success"] = "Kontot raderades framgångsrikt.";
+            return RedirectToAction("Index");
+        }
+        [HttpGet]
+        public IActionResult CreateAccount()
+        {
+            return View();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> CreateAccount(CreateAccountDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var success = await _accountService.CreateAccountAsync(model);
+
+            if (!success)
+            {
+                ModelState.AddModelError("", "Misslyckades att skapa kontot.");
+                return View(model);
+            }
+
             return RedirectToAction("Index");
         }
     }
