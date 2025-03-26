@@ -5,13 +5,151 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - DinApp</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css">
 </head>
 <body>
+    <header>
+        <nav>
+            <div class="navbar">
+                <a class="navbar-loggo" href="#">Robbans Arkad</a>
+                <div class="nav-buttons">
+                    <ul class="navbar-ul">
+                        <li class="nav-item"><a href="#">Event/</a></li>
+                        <li class="nav-item"><a href="#">Om oss/</a></li>
+                        <li class="nav-item"><a href="#">Hallar/</a></li>
+                        <li class="nav-item"><a href="#">Spel/</a></li>
+                        <li class="nav-item"><a href="#">Mat & Dricka</a></li>
+                    </ul>
+                </div>
+                <div class="right-buttons">
+                    <a class="btn-boka" href="#">Boka</a>
+                    
+                </div>
+            </div>
+        </nav>
+       
+    </header>
     <div class="container">
         @RenderBody()
     </div>
+
+    <footer class="footer">
+        <div class="info">&#128205; Pixelvägen 8, 123 45 Spelstaden | &#128222; 123-456 789 | &#128231; <a href="mailto:info@robbansarkad.se">info@robbansarkad.se</a></div>
+        <div>Följ oss på <a href="#">Instagram</a>, <a href="#">Facebook</a> & <a href="#">Twitter</a></div>
+    </footer>
+  
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @RenderSection("Scripts", required: false) <!-- Lägg till denna rad här -->
 </body>
 </html>
+
+<style>
+    body{
+        background-color: #751B75;
+    }
+    .navbar {
+        background-color: #2e1041;
+        height: 100px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+    }
+
+    .navbar-loggo {
+        text-decoration: none;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .nav-buttons {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-grow: 1;
+        font-family: 'Press Start 2P', cursive;
+    }
+
+    .navbar-ul {
+        display: flex;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+    }
+
+        .navbar-ul li {
+            list-style-type: none;
+            margin-right: 20px;
+        }
+
+        .navbar-ul a {
+            text-decoration: none;
+            color: white;
+        }
+
+            .navbar-ul a:hover {
+                color: #D1A0E4;
+            }
+
+    .right-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 20px;
+    }
+
+    .btn-boka {
+        text-decoration: none;
+        color: white;
+        padding: 10px 20px;
+        background-color: #FF00FF;
+        border-radius: 5px;
+    }
+
+        .btn-boka:hover {
+            background-color: #D1A0E4;
+            color: white;
+        }
+
+    .menu-container {
+        background-color: #2e1041;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #2e1041;
+        color: white;
+        text-align: center;
+        padding: 15px;
+        font-size: 16px;
+    }
+
+        .footer a {
+            color: #ddd;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+            .footer a:hover {
+                color: #ffffff;
+            }
+
+        .footer .info {
+            margin-bottom: 5px;
+        }
+
+    .text-center{
+        color:white;
+    }
+
+   
+</style>
