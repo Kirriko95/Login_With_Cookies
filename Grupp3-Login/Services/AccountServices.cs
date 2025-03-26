@@ -59,9 +59,19 @@ public class AccountService
         return response.IsSuccessStatusCode;
     }
 
+    // Create Employee-konto
+
     public async Task<bool> CreateAccountAsync(CreateAccountDto createAccountDto)
     {
         var response = await _httpClient.PostAsJsonAsync($"{_configuration["ApiBaseUrl"]}/api/Account/create-employee", createAccountDto);
         return response.IsSuccessStatusCode;
     }
+
+    // Create Kund-konto
+    public async Task<bool> CreateCustomerAsync(CreateAccountDto createAccountDto)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"{_configuration["ApiBaseUrl"]}/api/Account/register", createAccountDto);
+        return response.IsSuccessStatusCode;
+    }
+
 }
