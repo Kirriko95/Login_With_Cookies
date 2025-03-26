@@ -1,14 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grupp3_Login.Models;
-using Microsoft.EntityFrameworkCore.Storage.Json;
 
 namespace Grupp3_MVC.Controllers
 {
-    [Authorize]
+    [Authorize] // Kräver att användaren är inloggad
     public class AccountController : Controller
     {
         private readonly AccountService _accountService;
@@ -17,13 +15,13 @@ namespace Grupp3_MVC.Controllers
         {
             _accountService = accountService;
         }
+
         // ✅ Visa alla konton i Index
         [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             var accounts = await _accountService.GetAccountsAsync();
-
             return View(accounts);
         }
 
@@ -42,7 +40,7 @@ namespace Grupp3_MVC.Controllers
             var model = new UpdateAccountDto
             {
                 UserName = account.UserName,
-                Password = ""
+                Password = "" // Lämna lösenord tomt så att användaren kan ange ett nytt om de vill
             };
             return View(model);
         }
@@ -54,7 +52,6 @@ namespace Grupp3_MVC.Controllers
             if (!ModelState.IsValid)
             {
                 return View(model);
-
             }
 
             var success = await _accountService.UpdateAccountAsync(id, model);
@@ -84,6 +81,7 @@ namespace Grupp3_MVC.Controllers
             TempData["Success"] = "Kontot raderades framgångsrikt.";
             return RedirectToAction("Index");
         }
+
         [HttpGet]
         public IActionResult CreateAccount()
         {

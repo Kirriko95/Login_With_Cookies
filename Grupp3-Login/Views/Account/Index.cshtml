@@ -1,24 +1,24 @@
-﻿@model IEnumerable<Grupp3_Login.Models.AccountView>
+@model IEnumerable<Grupp3_Login.Models.AccountView>
 
 @{
     ViewData["Title"] = "Hantera Konton";
 }
 
 <div class="container mt-5">
-    <div class="card shadow-sm p-4">
+    <div class="card shadow-sm p-4" style="background-color:#751B75">
         <h1 class="text-center mb-3">Hantera Konton</h1>
         <p class="text-center lead">Administrera användare och behörigheter.</p>
 
         <div class="d-flex justify-content-between mb-3">
-            <a class="btn btn-success" asp-controller="Account" asp-action="CreateAccount">
+            <a class="btn btn-success" asp-controller="Account" asp-action="CreateAccount" style="background-color:#FF00FF; color:white;outline: 1px solid white;">
                 <i class="bi bi-person-plus"></i> Skapa Användarkonto
             </a>
-            <a class="btn btn-secondary" asp-controller="Home" asp-action="Admin">
+            <a class="btn btn-secondary" asp-controller="Home" asp-action="Admin" style="background-color:#FF00FF; color:white;outline: 1px solid white;">
                 <i class="bi bi-arrow-left"></i> Tillbaka till Admin
             </a>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive" style="background-color:#FF00FF; color:white;">
             <table class="table table-striped table-hover text-center align-middle">
                 <thead class="table-dark">
                     <tr>
